@@ -1,0 +1,7 @@
+{
+  "name": "DashMeals",
+  "description": "Application de livraison de repas en RDC avec géolocalisation, estimation de temps (moto/pied) et mode urgent.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
