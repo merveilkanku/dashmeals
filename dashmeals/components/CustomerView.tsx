@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { MapPin, ShoppingBag, List, Map, Zap, ArrowLeft, Plus, Bike, Footprints, LogOut, Navigation, Search, X, Receipt, Phone, Info, Image as ImageIcon, PlayCircle, Settings, Moon, Sun, Globe, CheckCircle, Type, Clock } from 'lucide-react';
+import { MapPin, ShoppingBag, List, Map, Zap, ArrowLeft, Plus, Bike, Footprints, LogOut, Navigation, Search, X, Receipt, Phone, Info, Image as ImageIcon, PlayCircle, Settings, Moon, Sun, Globe, CheckCircle, Type } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { KINSHASA_CENTER_LAT, KINSHASA_CENTER_LNG, CITIES_RDC, APP_LOGO_URL } from '../constants';
-import { Restaurant, UserState, ViewMode, MenuItem, CartItem, User, Order, Promotion, Theme, Language, AppFont, PaymentMethod, MobileMoneyNetwork } from '../types';
+import { Restaurant, UserState, ViewMode, MenuItem, CartItem, User, Order, Promotion, Theme, Language, AppFont } from '../types';
 import { calculateTime, getDistanceFromLatLonInKm, formatDistance, formatTime } from '../utils/geo';
 import { RestaurantCard } from '../components/RestaurantCard';
 import { MapView } from '../components/MapView';
@@ -49,13 +49,6 @@ export const CustomerView: React.FC<Props> = ({ user, allRestaurants, onLogout, 
   const [showSuccess, setShowSuccess] = useState(false);
   const [selectedCity, setSelectedCity] = useState<string>(user.city || 'Kinshasa');
   
-  const [isSearchingUrgent, setIsSearchingUrgent] = useState(false);
-  const [urgentRestaurant, setUrgentRestaurant] = useState<Restaurant | null>(null);
-
-  // Pagination State
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
-
   // Order States
   const [orders, setOrders] = useState<Order[]>([]);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
@@ -66,36 +59,6 @@ export const CustomerView: React.FC<Props> = ({ user, allRestaurants, onLogout, 
   // Story State
   const [activeStoryRestaurant, setActiveStoryRestaurant] = useState<Restaurant | null>(null);
   const [storyStartIndex, setStoryStartIndex] = useState(0);
-
-  // History Management
-  useEffect(() => {
-      // Initial state
-      if (!window.history.state) {
-          window.history.replaceState({ view: 'list' }, '');
-      }
-
-      const onPopState = (e: PopStateEvent) => {
-          if (e.state?.view) {
-              setViewMode(e.state.view);
-              // Close modals/overlays if going back to list
-              if (e.state.view === 'list') {
-                  setSelectedRestaurant(null);
-                  setIsCartOpen(false);
-                  setActiveChatOrder(null);
-                  setActiveStoryRestaurant(null);
-              }
-          }
-      };
-
-      window.addEventListener('popstate', onPopState);
-      return () => window.removeEventListener('popstate', onPopState);
-  }, []);
-
-  const navigateTo = (mode: ViewMode) => {
-      if (mode === viewMode) return;
-      window.history.pushState({ view: mode }, '', `#${mode}`);
-      setViewMode(mode);
-  };
 
   // Geolocation Function
   const refreshLocation = () => {
@@ -251,7 +214,6 @@ export const CustomerView: React.FC<Props> = ({ user, allRestaurants, onLogout, 
                 restaurantId: o.restaurant_id,
                 status: o.status,
                 totalAmount: o.total_amount,
-                isUrgent: o.items && o.items.length > 0 ? o.items[0].isUrgent : false,
                 items: o.items,
                 createdAt: o.created_at,
                 restaurant: {
@@ -263,36 +225,6 @@ export const CustomerView: React.FC<Props> = ({ user, allRestaurants, onLogout, 
     } catch (err) {
         console.error("Error fetching orders:", err);
     }
-  };
-
-  const handleUrgentMode = async () => {
-    if (urgentMode) {
-      setUrgentMode(false);
-      setUrgentRestaurant(null);
-      return;
-    }
-
-    setUrgentMode(true);
-    setIsSearchingUrgent(true);
-
-    // Simulate searching for nearby restaurants
-    setTimeout(() => {
-      // Find the closest open restaurant with quick prep time
-      const closest = restaurants
-        .filter(r => r.isOpen && r.preparationTime <= 20)
-        .sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity))[0];
-
-      setIsSearchingUrgent(false);
-      
-      if (closest) {
-        setUrgentRestaurant(closest);
-        setSelectedRestaurant(closest);
-        // Don't navigate yet, show the "Found" overlay instead
-      } else {
-        alert("Aucun restaurant rapide trouvé à proximité !");
-        setUrgentMode(false);
-      }
-    }, 2000);
   };
 
   // Filter Logic (City + Urgent + Search)
@@ -309,18 +241,6 @@ export const CustomerView: React.FC<Props> = ({ user, allRestaurants, onLogout, 
     }
     return list;
   }, [restaurants, urgentMode, selectedCity, searchQuery]);
-
-  // Reset pagination when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [selectedCity, urgentMode, searchQuery]);
-
-  const paginatedRestaurants = useMemo(() => {
-      const startIndex = (currentPage - 1) * itemsPerPage;
-      return filteredRestaurants.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredRestaurants, currentPage]);
-
-  const totalPages = Math.ceil(filteredRestaurants.length / itemsPerPage);
 
   // Cart Logic
   const addToCart = (item: MenuItem, restaurant: Restaurant) => {
@@ -349,25 +269,17 @@ export const CustomerView: React.FC<Props> = ({ user, allRestaurants, onLogout, 
 
   const cartTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-  const handleCheckout = async (paymentMethod: PaymentMethod, network?: MobileMoneyNetwork, isUrgent?: boolean) => {
+  const handleCheckout = async () => {
     if (cart.length === 0) return;
     setIsCheckingOut(true);
-
-    // Add isUrgent flag to the first item as a workaround for schema limitations
-    const itemsWithUrgent = cart.map((item, index) => 
-        index === 0 ? { ...item, isUrgent: isUrgent || false } : item
-    );
 
     try {
         const { data, error } = await supabase.from('orders').insert({
             user_id: user.id,
             restaurant_id: cart[0].restaurantId,
             status: 'pending',
-            payment_method: paymentMethod,
-            payment_network: network,
-            payment_status: paymentMethod === 'cash' ? 'pending' : 'paid', // On assume payé si mobile money pour la démo
             total_amount: cartTotal,
-            items: itemsWithUrgent // Supabase will stringify this automatically for jsonb
+            items: cart // Supabase will stringify this automatically for jsonb
         }).select().single();
 
         if (error) {
@@ -452,64 +364,6 @@ export const CustomerView: React.FC<Props> = ({ user, allRestaurants, onLogout, 
         </div>
       )}
 
-      {/* URGENT MODE OVERLAY */}
-      {isSearchingUrgent && (
-        <div className="absolute inset-0 z-[70] bg-black/80 flex flex-col items-center justify-center text-white p-6 text-center backdrop-blur-sm">
-           <div className="w-24 h-24 rounded-full border-4 border-red-500 border-t-transparent animate-spin mb-6"></div>
-           <h2 className="text-2xl font-black mb-2 animate-pulse">Recherche Express...</h2>
-           <p className="text-gray-300">Nous cherchons le restaurant le plus rapide autour de vous !</p>
-        </div>
-      )}
-
-      {urgentRestaurant && urgentMode && (
-         <div className="absolute inset-0 z-[70] bg-black/90 flex flex-col items-center justify-center p-6 text-center animate-in fade-in zoom-in duration-300">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-sm shadow-2xl border-2 border-red-500 relative overflow-hidden">
-                <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-red-500 via-orange-500 to-yellow-500 animate-pulse"></div>
-                
-                <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Zap size={40} className="text-red-600 fill-red-600 animate-bounce" />
-                </div>
-                
-                <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-1">Trouvé !</h2>
-                <h3 className="text-xl font-bold text-brand-600 mb-4">{urgentRestaurant.name}</h3>
-                
-                <div className="flex justify-center space-x-4 mb-6 text-sm">
-                    <span className="flex items-center text-gray-600 dark:text-gray-300 font-bold bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-lg">
-                        <Navigation size={14} className="mr-1"/> {formatDistance(urgentRestaurant.distance || 0)}
-                    </span>
-                    <span className="flex items-center text-red-600 font-bold bg-red-50 dark:bg-red-900/20 px-3 py-1 rounded-lg">
-                        <Clock size={14} className="mr-1"/> ~{urgentRestaurant.preparationTime} min
-                    </span>
-                </div>
-
-                <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
-                    Ce restaurant est ouvert et peut préparer votre commande rapidement. Voulez-vous voir le menu ?
-                </p>
-
-                <div className="space-y-3">
-                    <button 
-                        onClick={() => {
-                            setUrgentRestaurant(null);
-                            navigateTo('restaurant_detail');
-                        }}
-                        className="w-full bg-red-600 text-white font-bold py-3 rounded-xl hover:bg-red-700 shadow-lg shadow-red-500/30 transition-transform active:scale-95"
-                    >
-                        COMMANDER MAINTENANT ⚡
-                    </button>
-                    <button 
-                        onClick={() => {
-                            setUrgentMode(false);
-                            setUrgentRestaurant(null);
-                        }}
-                        className="w-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-bold py-3 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600"
-                    >
-                        Annuler
-                    </button>
-                </div>
-            </div>
-         </div>
-      )}
-
       {/* HEADER */}
       <header className="bg-white dark:bg-gray-800 sticky top-0 z-30 px-4 py-3 shadow-sm border-b border-gray-100 dark:border-gray-700 transition-colors duration-300">
         <div className="flex justify-between items-center mb-2">
@@ -529,7 +383,7 @@ export const CustomerView: React.FC<Props> = ({ user, allRestaurants, onLogout, 
                 <ShoppingBag size={20} className="text-gray-700 dark:text-gray-200" />
                 {cart.length > 0 && <span className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold h-4 w-4 flex items-center justify-center rounded-full border-2 border-white dark:border-gray-800">{cart.length}</span>}
             </button>
-            <button onClick={() => navigateTo('settings')} className="p-2 text-gray-400 hover:text-brand-600 dark:hover:text-brand-400">
+            <button onClick={() => setViewMode('settings')} className="p-2 text-gray-400 hover:text-brand-600 dark:hover:text-brand-400">
                 <Settings size={20} />
             </button>
           </div>
@@ -609,7 +463,7 @@ export const CustomerView: React.FC<Props> = ({ user, allRestaurants, onLogout, 
                 {/* FILTERS */}
                 <div className="flex space-x-3 mb-6 overflow-x-auto no-scrollbar pb-1">
                     <button 
-                        onClick={handleUrgentMode}
+                        onClick={() => setUrgentMode(!urgentMode)}
                         className={`flex items-center px-4 py-2 rounded-full font-bold text-sm shadow-sm transition-all border whitespace-nowrap ${urgentMode ? 'bg-red-500 text-white border-red-500 animate-pulse-fast' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700'}`}
                     >
                         <Zap size={16} className={`mr-1 ${urgentMode ? 'fill-white' : 'fill-none'}`} />
@@ -622,43 +476,13 @@ export const CustomerView: React.FC<Props> = ({ user, allRestaurants, onLogout, 
                 {/* CONTENT */}
                 {viewMode === 'list' ? (
                     <div className="space-y-4">
-                        {paginatedRestaurants.map(restaurant => (
+                        {filteredRestaurants.map(restaurant => (
                             <RestaurantCard 
                                 key={restaurant.id} 
                                 restaurant={restaurant} 
-                                onClick={() => { setSelectedRestaurant(restaurant); navigateTo('restaurant_detail'); }} 
+                                onClick={() => { setSelectedRestaurant(restaurant); setViewMode('restaurant_detail'); }}
                             />
                         ))}
-
-                        {/* Pagination Controls */}
-                        {totalPages > 1 && (
-                            <div className="flex justify-center items-center space-x-4 py-4">
-                                <button 
-                                    onClick={() => {
-                                        setCurrentPage(p => Math.max(1, p - 1));
-                                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                                    }}
-                                    disabled={currentPage === 1}
-                                    className="px-4 py-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 disabled:opacity-50 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                                >
-                                    Précédent
-                                </button>
-                                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                                    Page {currentPage} / {totalPages}
-                                </span>
-                                <button 
-                                    onClick={() => {
-                                        setCurrentPage(p => Math.min(totalPages, p + 1));
-                                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                                    }}
-                                    disabled={currentPage === totalPages}
-                                    className="px-4 py-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 disabled:opacity-50 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                                >
-                                    Suivant
-                                </button>
-                            </div>
-                        )}
-
                         {filteredRestaurants.length === 0 && (
                             <div className="text-center py-10 text-gray-500 dark:text-gray-400">
                                 <p>Aucun restaurant trouvé {selectedCity !== 'Toutes' ? `à ${selectedCity}` : ''} {searchQuery ? `pour "${searchQuery}"` : ''} :(</p>
@@ -670,13 +494,13 @@ export const CustomerView: React.FC<Props> = ({ user, allRestaurants, onLogout, 
                     <MapView 
                         restaurants={filteredRestaurants} 
                         userLocation={userState.location} 
-                        onSelect={(r) => { setSelectedRestaurant(r); navigateTo('restaurant_detail'); }}
+                        onSelect={(r) => { setSelectedRestaurant(r); setViewMode('restaurant_detail'); }}
                     />
                 )}
             </>
         ) : viewMode === 'restaurant_detail' && selectedRestaurant ? (
             <div className="animate-in slide-in-from-right duration-300">
-                <button onClick={() => window.history.back()} className="mb-4 flex items-center text-gray-600 dark:text-gray-300 font-medium hover:text-brand-600"><ArrowLeft size={18} className="mr-1" /> Retour</button>
+                <button onClick={() => setViewMode('list')} className="mb-4 flex items-center text-gray-600 dark:text-gray-300 font-medium hover:text-brand-600"><ArrowLeft size={18} className="mr-1" /> Retour</button>
                 <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden mb-6">
                     <img src={selectedRestaurant.coverImage} className="w-full h-48 object-cover" alt="Cover" />
                     <div className="p-4">
@@ -768,9 +592,9 @@ export const CustomerView: React.FC<Props> = ({ user, allRestaurants, onLogout, 
                 )}
 
                 <h3 className="text-lg font-bold mb-3 text-gray-800 dark:text-white">Menu</h3>
-                <div className="space-y-3 pb-20">
+                <div className="space-y-3">
                     {selectedRestaurant.menu.map(item => (
-                        <div key={item.id} className={`bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm flex space-x-3 ${!item.isAvailable ? 'opacity-60 grayscale' : ''}`}>
+                        <div key={item.id} className="bg-white dark:bg-gray-800 p-3 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm flex space-x-3">
                             <img src={item.image} className="w-20 h-20 rounded-lg object-cover bg-gray-100 dark:bg-gray-700" alt={item.name} />
                             <div className="flex-1 flex flex-col justify-between">
                                 <div>
@@ -778,46 +602,13 @@ export const CustomerView: React.FC<Props> = ({ user, allRestaurants, onLogout, 
                                     <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1">{item.description}</p>
                                 </div>
                                 <div className="flex justify-between items-end mt-2">
-                                    <span className="font-bold text-brand-600">
-                                        {selectedRestaurant.currency === 'CDF' ? `${(item.price || 0).toFixed(0)} FC` : `$${(item.price || 0).toFixed(2)}`}
-                                    </span>
-                                    {item.isAvailable ? (
-                                        <div className="flex items-center space-x-2">
-                                            {cart.find(c => c.id === item.id) && (
-                                                <span className="text-xs font-bold bg-brand-100 dark:bg-brand-900 text-brand-700 dark:text-brand-300 px-2 py-1 rounded-full">
-                                                    x{cart.find(c => c.id === item.id)?.quantity}
-                                                </span>
-                                            )}
-                                            <button onClick={() => addToCart(item, selectedRestaurant)} className="bg-brand-50 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 p-2 rounded-full hover:bg-brand-100 dark:hover:bg-brand-900/50 transition-colors"><Plus size={16} /></button>
-                                        </div>
-                                    ) : (
-                                        <span className="text-[10px] font-bold text-red-500 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded">Épuisé</span>
-                                    )}
+                                    <span className="font-bold text-brand-600">${(item.price || 0).toFixed(2)}</span>
+                                    <button onClick={() => addToCart(item, selectedRestaurant)} className="bg-brand-50 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 p-2 rounded-full hover:bg-brand-100 dark:hover:bg-brand-900/50 transition-colors"><Plus size={16} /></button>
                                 </div>
                             </div>
                         </div>
                     ))}
                 </div>
-
-                {/* STICKY CART SUMMARY */}
-                {cart.length > 0 && (
-                    <div className="fixed bottom-0 left-0 right-0 p-4 z-50 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-2xl animate-slide-in-right max-w-md mx-auto">
-                        <button 
-                            onClick={() => setIsCartOpen(true)}
-                            className="w-full bg-brand-600 text-white rounded-xl p-4 flex justify-between items-center shadow-lg hover:bg-brand-700 transition-colors"
-                        >
-                            <div className="flex items-center">
-                                <div className="bg-white/20 w-8 h-8 rounded-full flex items-center justify-center mr-3 font-bold text-sm">
-                                    {cart.reduce((acc, item) => acc + item.quantity, 0)}
-                                </div>
-                                <span className="font-bold">Voir le panier</span>
-                            </div>
-                            <span className="font-black text-lg">
-                                {selectedRestaurant.currency === 'CDF' ? `${cartTotal.toFixed(0)} FC` : `$${cartTotal.toFixed(2)}`}
-                            </span>
-                        </button>
-                    </div>
-                )}
             </div>
         ) : viewMode === 'orders' ? (
             <OrdersView 
@@ -828,7 +619,7 @@ export const CustomerView: React.FC<Props> = ({ user, allRestaurants, onLogout, 
             />
         ) : viewMode === 'settings' ? (
              <div className="animate-in slide-in-from-right duration-300">
-                <button onClick={() => window.history.back()} className="mb-4 flex items-center text-gray-600 dark:text-gray-300 font-medium hover:text-brand-600"><ArrowLeft size={18} className="mr-1" /> {t('back_to_restaurants')}</button>
+                <button onClick={() => setViewMode('list')} className="mb-4 flex items-center text-gray-600 dark:text-gray-300 font-medium hover:text-brand-600"><ArrowLeft size={18} className="mr-1" /> {t('back_to_restaurants')}</button>
                 <h2 className="text-2xl font-black text-gray-800 dark:text-white mb-6">{t('settings')}</h2>
                 
                 <div className="space-y-6">
@@ -886,8 +677,7 @@ export const CustomerView: React.FC<Props> = ({ user, allRestaurants, onLogout, 
                                 onChange={(e) => setFont(e.target.value as AppFont)}
                                 className="w-full bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-3 rounded-lg border border-gray-200 dark:border-gray-600 outline-none focus:border-brand-500"
                             >
-                                <option value="facebook">Facebook (Défaut)</option>
-                                <option value="inter">Inter</option>
+                                <option value="inter">Inter (Défaut)</option>
                                 <option value="roboto">Roboto</option>
                                 <option value="opensans">Open Sans</option>
                                 <option value="lato">Lato</option>
@@ -909,23 +699,13 @@ export const CustomerView: React.FC<Props> = ({ user, allRestaurants, onLogout, 
 
       {/* BOTTOM NAV */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-6 py-3 flex justify-around items-center z-40 max-w-md mx-auto transition-colors duration-300">
-        <button onClick={() => navigateTo('list')} className={`flex flex-col items-center space-y-1 ${viewMode === 'list' || viewMode === 'restaurant_detail' ? 'text-brand-600 dark:text-brand-400' : 'text-gray-400 dark:text-gray-500'}`}><List size={22} /><span className="text-[10px] font-medium">Liste</span></button>
+        <button onClick={() => setViewMode('list')} className={`flex flex-col items-center space-y-1 ${viewMode === 'list' || viewMode === 'restaurant_detail' ? 'text-brand-600 dark:text-brand-400' : 'text-gray-400 dark:text-gray-500'}`}><List size={22} /><span className="text-[10px] font-medium">Liste</span></button>
         <div className="relative -top-6"><button onClick={() => setUrgentMode(!urgentMode)} className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg border-4 border-gray-50 dark:border-gray-900 transition-all ${urgentMode ? 'bg-red-500 text-white scale-110' : 'bg-brand-500 text-white'}`}><Zap size={24} className={urgentMode ? 'animate-pulse' : ''} /></button></div>
-        <button onClick={() => navigateTo('map')} className={`flex flex-col items-center space-y-1 ${viewMode === 'map' ? 'text-brand-600 dark:text-brand-400' : 'text-gray-400 dark:text-gray-500'}`}><Map size={22} /><span className="text-[10px] font-medium">Carte</span></button>
-        <button onClick={() => navigateTo('orders')} className={`flex flex-col items-center space-y-1 ${viewMode === 'orders' ? 'text-brand-600 dark:text-brand-400' : 'text-gray-400 dark:text-gray-500'}`}><Receipt size={22} /><span className="text-[10px] font-medium">{t('orders')}</span></button>
+        <button onClick={() => setViewMode('map')} className={`flex flex-col items-center space-y-1 ${viewMode === 'map' ? 'text-brand-600 dark:text-brand-400' : 'text-gray-400 dark:text-gray-500'}`}><Map size={22} /><span className="text-[10px] font-medium">Carte</span></button>
+        <button onClick={() => setViewMode('orders')} className={`flex flex-col items-center space-y-1 ${viewMode === 'orders' ? 'text-brand-600 dark:text-brand-400' : 'text-gray-400 dark:text-gray-500'}`}><Receipt size={22} /><span className="text-[10px] font-medium">{t('orders')}</span></button>
       </nav>
 
-      <CartDrawer 
-        isOpen={isCartOpen} 
-        onClose={() => setIsCartOpen(false)} 
-        items={cart} 
-        onRemove={removeFromCart} 
-        onCheckout={handleCheckout} 
-        total={cartTotal} 
-        isLoading={isCheckingOut} 
-        currency={restaurants.find(r => r.id === cart[0]?.restaurantId)?.currency} 
-        paymentConfig={restaurants.find(r => r.id === cart[0]?.restaurantId)?.paymentConfig}
-      />
+      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} items={cart} onRemove={removeFromCart} onCheckout={handleCheckout} total={cartTotal} isLoading={isCheckingOut} />
     </div>
   );
 };

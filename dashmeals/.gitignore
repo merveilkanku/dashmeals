@@ -18,13 +18,6 @@ dist-ssr
 .idea
 .DS_Store
 *.suo
-
-# Android build artifacts
-android/app/build
-android/.gradle
-android/capacitor-cordova-android-plugins/build
-android/app/src/main/assets/public
-android/app/src/main/assets/capacitor.config.json
 *.ntvs*
 *.njsproj
 *.sln

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Users, Store, ShoppingBag, DollarSign, Activity, 
   Search, CheckCircle, XCircle, LogOut, Shield, 
-  Trash2, AlertTriangle, Database, Type, Sun, Moon, Menu, X
+  Trash2, AlertTriangle, Database, Type, Sun, Moon
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { APP_LOGO_URL } from '../constants';
@@ -34,7 +34,6 @@ export const SuperAdminDashboard: React.FC<Props> = ({ user, onLogout, theme, se
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [pendingVerifications, setPendingVerifications] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     fetchStats();
@@ -45,11 +44,6 @@ export const SuperAdminDashboard: React.FC<Props> = ({ user, onLogout, theme, se
     if (activeView === 'restaurants') fetchRestaurants();
     if (activeView === 'verifications') fetchPendingVerifications();
   }, [activeView]);
-
-  const handleNavigation = (view: AdminView) => {
-      setActiveView(view);
-      setIsMobileMenuOpen(false);
-  };
 
   const fetchStats = async () => {
     // In a real app, these would be optimized count queries
@@ -409,18 +403,10 @@ export const SuperAdminDashboard: React.FC<Props> = ({ user, onLogout, theme, se
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 flex relative">
-      {/* Mobile Overlay */}
-      {isMobileMenuOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
-          onClick={() => setIsMobileMenuOpen(false)}
-        />
-      )}
-
+    <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 text-white flex flex-col transition-transform duration-300 ease-in-out md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="p-6 border-b border-gray-800 flex justify-between items-center">
+      <aside className="w-64 bg-gray-900 text-white flex flex-col fixed h-full">
+        <div className="p-6 border-b border-gray-800">
             <div className="flex items-center space-x-3">
                 <div className="bg-white p-1 rounded-lg shadow-sm shadow-brand-900/50">
                     <img src={APP_LOGO_URL} alt="DashMeals" className="h-8 w-auto object-contain" />
@@ -430,25 +416,23 @@ export const SuperAdminDashboard: React.FC<Props> = ({ user, onLogout, theme, se
                     <span className="text-[10px] text-brand-400 font-bold uppercase tracking-wider">Admin</span>
                 </div>
             </div>
-            <button onClick={() => setIsMobileMenuOpen(false)} className="md:hidden text-gray-400 hover:text-white">
-              <X size={24} />
-            </button>
+            <p className="text-xs text-gray-500 mt-2 font-mono">Control Center v1.0</p>
         </div>
         <nav className="flex-1 p-4 space-y-2">
-            <button onClick={() => handleNavigation('overview')} className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${activeView === 'overview' ? 'bg-brand-600 text-white font-bold' : 'text-gray-400 hover:bg-gray-800'}`}>
+            <button onClick={() => setActiveView('overview')} className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${activeView === 'overview' ? 'bg-brand-600 text-white font-bold' : 'text-gray-400 hover:bg-gray-800'}`}>
                 <Activity size={20} /> <span>Vue d'ensemble</span>
             </button>
-            <button onClick={() => handleNavigation('users')} className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${activeView === 'users' ? 'bg-brand-600 text-white font-bold' : 'text-gray-400 hover:bg-gray-800'}`}>
+            <button onClick={() => setActiveView('users')} className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${activeView === 'users' ? 'bg-brand-600 text-white font-bold' : 'text-gray-400 hover:bg-gray-800'}`}>
                 <Users size={20} /> <span>Utilisateurs</span>
             </button>
-            <button onClick={() => handleNavigation('restaurants')} className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${activeView === 'restaurants' ? 'bg-brand-600 text-white font-bold' : 'text-gray-400 hover:bg-gray-800'}`}>
+            <button onClick={() => setActiveView('restaurants')} className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${activeView === 'restaurants' ? 'bg-brand-600 text-white font-bold' : 'text-gray-400 hover:bg-gray-800'}`}>
                 <Store size={20} /> <span>Restaurants</span>
             </button>
-            <button onClick={() => handleNavigation('verifications')} className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${activeView === 'verifications' ? 'bg-brand-600 text-white font-bold' : 'text-gray-400 hover:bg-gray-800'}`}>
+            <button onClick={() => setActiveView('verifications')} className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${activeView === 'verifications' ? 'bg-brand-600 text-white font-bold' : 'text-gray-400 hover:bg-gray-800'}`}>
                 <Shield size={20} /> <span>Vérifications</span>
                 {stats.pendingVerifications > 0 && <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full">{stats.pendingVerifications}</span>}
             </button>
-            <button onClick={() => handleNavigation('products')} className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${activeView === 'products' ? 'bg-brand-600 text-white font-bold' : 'text-gray-400 hover:bg-gray-800'}`}>
+            <button onClick={() => setActiveView('products')} className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all ${activeView === 'products' ? 'bg-brand-600 text-white font-bold' : 'text-gray-400 hover:bg-gray-800'}`}>
                 <Database size={20} /> <span>Produits & Menus</span>
             </button>
         </nav>
@@ -479,8 +463,7 @@ export const SuperAdminDashboard: React.FC<Props> = ({ user, onLogout, theme, se
                         onChange={(e) => setFont(e.target.value as AppFont)}
                         className="w-full bg-gray-800 text-gray-300 text-xs p-2 rounded-lg border border-gray-700 outline-none focus:border-brand-500"
                     >
-                        <option value="facebook">Facebook (Défaut)</option>
-                        <option value="inter">Inter</option>
+                        <option value="inter">Inter (Défaut)</option>
                         <option value="roboto">Roboto</option>
                         <option value="opensans">Open Sans</option>
                         <option value="lato">Lato</option>
@@ -495,19 +478,10 @@ export const SuperAdminDashboard: React.FC<Props> = ({ user, onLogout, theme, se
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 md:ml-64 p-4 md:p-8 transition-all duration-300">
-         {/* Mobile Header Button */}
-         <div className="md:hidden mb-6 flex items-center justify-between">
-            <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 bg-white rounded-lg shadow-sm text-gray-600 border border-gray-200">
-              <Menu size={24} />
-            </button>
-            <span className="font-bold text-lg text-gray-900">DashMeals Admin</span>
-            <div className="w-10"></div> {/* Spacer */}
-         </div>
-
-         <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-8 gap-4">
+      <main className="flex-1 ml-64 p-8">
+         <header className="flex justify-between items-center mb-8">
              <div>
-                 <h2 className="text-xl md:text-2xl font-bold text-gray-900">
+                 <h2 className="text-2xl font-bold text-gray-900">
                      {activeView === 'overview' && 'Tableau de bord'}
                      {activeView === 'users' && 'Utilisateurs'}
                      {activeView === 'restaurants' && 'Restaurants Partenaires'}

@@ -8,7 +8,7 @@ export const KINSHASA_CENTER_LNG = 15.301;
 
 // Replace this URL with your actual hosted logo URL (e.g., from Supabase Storage or a public URL)
 // For best results, use a PNG with a transparent background.
-export const APP_LOGO_URL = "https://placehold.co/400x150/ffffff/e11d48?text=DashMeals&font=montserrat";
+export const APP_LOGO_URL = "/logo.png";
 
 export const CITIES_RDC = [
   "Kinshasa",
@@ -51,7 +51,6 @@ export const MOCK_RESTAURANTS: Restaurant[] = [
     estimatedDeliveryTime: 30,
     deliveryAvailable: true,
     coverImage: 'https://picsum.photos/800/600?random=1',
-    currency: 'USD',
     menu: [
       { id: 'm1', name: 'Poulet Moambe', description: 'Poulet à la sauce arachide avec fufu.', price: 12.5, image: 'https://picsum.photos/200/200?random=101', category: 'plat', isAvailable: true },
       { id: 'm2', name: 'Liboke de Poisson', description: 'Poisson cuit en feuille de bananier.', price: 15.0, image: 'https://picsum.photos/200/200?random=102', category: 'plat', isAvailable: true },
@@ -74,7 +73,6 @@ export const MOCK_RESTAURANTS: Restaurant[] = [
     estimatedDeliveryTime: 20,
     deliveryAvailable: true,
     coverImage: 'https://picsum.photos/800/600?random=2',
-    currency: 'USD',
     menu: [
       { id: 'k1', name: 'Le Kinshasa Burger', description: 'Double steak, fromage, sauce secrète.', price: 9.0, image: 'https://picsum.photos/200/200?random=201', category: 'plat', isAvailable: true },
       { id: 'k2', name: 'Frites Maison', description: 'Portion généreuse.', price: 2.5, image: 'https://picsum.photos/200/200?random=202', category: 'entrée', isAvailable: true },
@@ -96,7 +94,6 @@ export const MOCK_RESTAURANTS: Restaurant[] = [
     estimatedDeliveryTime: 45,
     deliveryAvailable: true,
     coverImage: 'https://picsum.photos/800/600?random=3',
-    currency: 'USD',
     menu: [
       { id: 'p1', name: 'Reine', description: 'Jambon, fromage, champignons.', price: 14.0, image: 'https://picsum.photos/200/200?random=301', category: 'plat', isAvailable: true },
     ]
@@ -117,7 +114,6 @@ export const MOCK_RESTAURANTS: Restaurant[] = [
     estimatedDeliveryTime: 40,
     deliveryAvailable: false,
     coverImage: 'https://picsum.photos/800/600?random=4',
-    currency: 'USD',
     menu: [
       { id: 'g1', name: 'Capitaine Braisé', description: 'Poisson entier braisé aux épices.', price: 25.0, image: 'https://picsum.photos/200/200?random=401', category: 'plat', isAvailable: true },
     ]
@@ -138,7 +134,6 @@ export const MOCK_RESTAURANTS: Restaurant[] = [
     estimatedDeliveryTime: 15,
     deliveryAvailable: true,
     coverImage: 'https://picsum.photos/800/600?random=5',
-    currency: 'USD',
     menu: [
       { id: 's1', name: 'Chawarma Poulet', description: 'Pain libanais, poulet, crudités.', price: 5.0, image: 'https://picsum.photos/200/200?random=501', category: 'plat', isAvailable: true },
     ]

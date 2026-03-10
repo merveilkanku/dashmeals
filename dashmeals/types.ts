@@ -25,18 +25,6 @@ export interface Promotion {
   createdAt: string;
 }
 
-export type Currency = 'USD' | 'CDF';
-
-export type MobileMoneyNetwork = 'mpesa' | 'airtel' | 'orange';
-
-export interface RestaurantPaymentConfig {
-  acceptCash: boolean;
-  acceptMobileMoney: boolean;
-  mpesaNumber?: string;
-  airtelNumber?: string;
-  orangeNumber?: string;
-}
-
 export interface Restaurant {
   id: string;
   ownerId: string; // Lien avec le compte entreprise
@@ -46,7 +34,6 @@ export interface Restaurant {
   latitude: number;
   longitude: number;
   city: string; // Ville de l'établissement
-  currency: Currency; // Devise par défaut
   isOpen: boolean;
   rating: number; // 1-5
   reviewCount: number;
@@ -57,7 +44,6 @@ export interface Restaurant {
   phoneNumber?: string; // Ajout pour l'appel
   menu: MenuItem[];
   promotions?: Promotion[]; // Stories actives
-  paymentConfig?: RestaurantPaymentConfig;
   // Verification fields
   isVerified?: boolean;
   verificationStatus?: 'unverified' | 'pending' | 'verified' | 'rejected';
@@ -101,18 +87,13 @@ export interface User {
 
 // Order Types
 export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'delivering' | 'completed' | 'cancelled';
-export type PaymentMethod = 'cash' | 'mobile_money';
 
 export interface Order {
   id: string;
   userId: string;
   restaurantId: string;
   status: OrderStatus;
-  paymentMethod: PaymentMethod;
-  paymentNetwork?: MobileMoneyNetwork;
-  paymentStatus: 'pending' | 'paid' | 'failed';
   totalAmount: number;
-  isUrgent?: boolean;
   items: CartItem[];
   createdAt: string;
   // Optional joined fields for display
@@ -139,4 +120,4 @@ export interface Message {
 // App Settings Types
 export type Theme = 'light' | 'dark';
 export type Language = 'fr' | 'en' | 'ln'; // Français, Anglais, Lingala
-export type AppFont = 'inter' | 'roboto' | 'opensans' | 'lato' | 'montserrat' | 'facebook';
+export type AppFont = 'inter' | 'roboto' | 'opensans' | 'lato' | 'montserrat';

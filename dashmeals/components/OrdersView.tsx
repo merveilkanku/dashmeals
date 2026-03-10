@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Receipt, ShoppingBag, Phone, MessageSquare, CheckCircle2, Circle, Bike, ChefHat, Clock, Camera, Star, X, Banknote, Smartphone, Zap } from 'lucide-react';
+import { Receipt, ShoppingBag, Phone, MessageSquare, CheckCircle2, Circle, Bike, ChefHat, Clock, Camera, Star, X } from 'lucide-react';
 import { Order, OrderStatus } from '../types';
 import { supabase } from '../lib/supabase';
 
@@ -165,26 +165,10 @@ export const OrdersView: React.FC<Props> = ({ orders, onChat, onBrowse, onOrderU
                         <div className="p-4 border-b border-gray-50 bg-gray-50/50">
                             <div className="flex justify-between items-start mb-1">
                                 <div>
-                                    <div className="flex items-center space-x-2">
-                                        <h3 className="font-bold text-gray-800 text-lg">{order.restaurant?.name || 'Restaurant inconnu'}</h3>
-                                        {order.isUrgent && (
-                                            <span className="bg-red-500 text-white px-2 py-0.5 rounded text-[10px] font-bold uppercase flex items-center shadow-sm animate-pulse-fast">
-                                                <Zap size={10} className="mr-1 fill-white" /> Urgent
-                                            </span>
-                                        )}
-                                    </div>
+                                    <h3 className="font-bold text-gray-800 text-lg">{order.restaurant?.name || 'Restaurant inconnu'}</h3>
                                     <p className="text-xs text-gray-400">Commande #{order.id.slice(0,6)} • {new Date(order.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'})}</p>
                                 </div>
                                 <span className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wide ${getStatusColor(order.status)}`}>{getStatusLabel(order.status)}</span>
-                            </div>
-                            <div className="flex items-center space-x-2 mt-2">
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-600 flex items-center">
-                                    {order.paymentMethod === 'cash' ? <Banknote size={10} className="mr-1"/> : <Smartphone size={10} className="mr-1"/>}
-                                    {order.paymentMethod === 'cash' ? 'Cash' : `Mobile Money (${order.paymentNetwork?.toUpperCase()})`}
-                                </span>
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded flex items-center ${order.paymentStatus === 'paid' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                                    {order.paymentStatus === 'paid' ? 'Payé' : 'En attente de paiement'}
-                                </span>
                             </div>
                         </div>
 

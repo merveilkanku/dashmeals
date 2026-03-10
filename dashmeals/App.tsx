@@ -20,7 +20,7 @@ function App() {
   // Settings States
   const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('dashmeals_theme') as Theme) || 'light');
   const [language, setLanguage] = useState<Language>(() => (localStorage.getItem('dashmeals_language') as Language) || 'fr');
-  const [font, setFont] = useState<AppFont>(() => (localStorage.getItem('dashmeals_font') as AppFont) || 'facebook');
+  const [font, setFont] = useState<AppFont>(() => (localStorage.getItem('dashmeals_font') as AppFont) || 'inter');
 
   // États pour la création manuelle de restaurant (Fallback)
   const [newRestoName, setNewRestoName] = useState('');
@@ -46,10 +46,8 @@ function App() {
   // Apply & Persist Font
   useEffect(() => {
     // Update the global sans font variable to match the selected font
-    const fontValue = `var(--font-${font})`;
-    document.documentElement.style.setProperty('--font-sans', fontValue);
-    // Also force it on body to ensure it overrides any Tailwind defaults
-    document.body.style.fontFamily = fontValue;
+    // This overrides the Tailwind theme variable because inline styles have higher specificity/cascade
+    document.documentElement.style.setProperty('--font-sans', `var(--font-${font})`);
     localStorage.setItem('dashmeals_font', font);
   }, [font]);
 
@@ -94,7 +92,6 @@ function App() {
   }, []);
 
   const fetchUserProfile = async (userId: string, email: string, metadata: any = {}) => {
-    setLoading(true);
     try {
       // FORCE SUPERADMIN FOR SPECIFIC EMAIL
       if (email === 'irmerveilkanku@gmail.com') {
@@ -207,11 +204,6 @@ function App() {
           estimatedDeliveryTime: r.estimated_delivery_time || 20,
           deliveryAvailable: r.delivery_available,
           coverImage: r.cover_image || 'https://picsum.photos/800/600?grayscale',
-          currency: r.currency || 'USD',
-          paymentConfig: r.payment_config || {
-            acceptCash: true,
-            acceptMobileMoney: false
-          },
           menu: (r.menu_items || []).map((m: any) => ({
             id: m.id,
             name: m.name,
@@ -303,7 +295,6 @@ function App() {
             estimatedDeliveryTime: 30,
             deliveryAvailable: true,
             coverImage: 'https://picsum.photos/800/600?food',
-            currency: 'USD',
             menu: []
         };
         

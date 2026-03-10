@@ -7,7 +7,7 @@ import {
   Receipt, CheckCircle, ChefHat, Bike, LayoutDashboard, Settings, 
   TrendingUp, Users, ShoppingBag, X, Save, Image as ImageIcon, MapPin,
   MessageSquare, Phone, Megaphone, Video, PlayCircle, Upload, AlertCircle, Bell, Moon, Sun, Globe, RefreshCw, Type, Shield,
-  Lock, Eye, EyeOff, Smartphone, UserX, ToggleLeft, ToggleRight, Zap
+  Lock, Eye, EyeOff, Smartphone, UserX, ToggleLeft, ToggleRight
 } from 'lucide-react';
 import { ChatWindow } from '../components/ChatWindow';
 import { useTranslation } from '../lib/i18n';
@@ -35,16 +35,8 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
 
   // Menu Management State
   const [isAddingItem, setIsAddingItem] = useState(false);
-  const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [loading, setLoading] = useState(false);
   const [updatingTimes, setUpdatingTimes] = useState(false);
-
-  const formatPrice = (price: number) => {
-      if (restaurant.currency === 'CDF') {
-          return `${price.toFixed(0)} FC`;
-      }
-      return `$${price.toFixed(2)}`;
-  };
   
   // Marketing State
   const [promotions, setPromotions] = useState<Promotion[]>([]);
@@ -53,7 +45,6 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
   const [newPromoCaption, setNewPromoCaption] = useState('');
   const [isAddingPromo, setIsAddingPromo] = useState(false);
   const [promoFile, setPromoFile] = useState<File | null>(null);
-  const [promoError, setPromoError] = useState<string | null>(null);
   
   // Settings State
   const [settingsForm, setSettingsForm] = useState({
@@ -61,12 +52,7 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
       description: restaurant.description,
       coverImage: restaurant.coverImage,
       city: restaurant.city,
-      phoneNumber: restaurant.phoneNumber || '',
-      currency: restaurant.currency || 'USD',
-      paymentConfig: restaurant.paymentConfig || {
-          acceptCash: true,
-          acceptMobileMoney: false
-      }
+      phoneNumber: restaurant.phoneNumber || ''
   });
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
@@ -223,12 +209,7 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
           description: restaurant.description,
           coverImage: restaurant.coverImage,
           city: restaurant.city,
-          phoneNumber: restaurant.phoneNumber || '',
-          currency: restaurant.currency || 'USD',
-          paymentConfig: restaurant.paymentConfig || {
-              acceptCash: true,
-              acceptMobileMoney: false
-          }
+          phoneNumber: restaurant.phoneNumber || ''
       });
   }, [restaurant]);
 
@@ -322,7 +303,6 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
                 restaurantId: o.restaurant_id,
                 status: o.status,
                 totalAmount: o.total_amount,
-                isUrgent: o.items && o.items.length > 0 ? o.items[0].isUrgent : false,
                 items: o.items,
                 createdAt: o.created_at,
                 customer: { 
@@ -357,46 +337,21 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
   const addPromotion = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setPromoError(null);
 
     let urlToUse = newPromoUrl;
 
     if (promoFile) {
-        // Validation du type
-        const isVideo = promoFile.type.startsWith('video/');
-        const isImage = promoFile.type.startsWith('image/');
-        
-        if (newPromoType === 'video' && !isVideo) {
-            setPromoError("Le fichier sélectionné n'est pas une vidéo valide.");
-            setLoading(false);
-            return;
-        }
-        if (newPromoType === 'image' && !isImage) {
-            setPromoError("Le fichier sélectionné n'est pas une image valide.");
-            setLoading(false);
-            return;
-        }
-
-        // Validation de la taille (ex: max 10MB pour les images, 50MB pour les vidéos)
-        const maxSize = newPromoType === 'video' ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
-        if (promoFile.size > maxSize) {
-            setPromoError(`Fichier trop volumineux. Maximum ${newPromoType === 'video' ? '50MB' : '10MB'}.`);
-            setLoading(false);
-            return;
-        }
-
         const uploaded = await uploadImage(promoFile);
         if (uploaded) {
             urlToUse = uploaded;
         } else {
-            setPromoError("Échec du téléchargement du média vers le serveur. Vérifiez votre connexion ou les permissions de stockage.");
             setLoading(false);
             return;
         }
     }
 
     if (!urlToUse) {
-        setPromoError("Veuillez fournir une URL ou sélectionner un fichier média.");
+        alert("Veuillez fournir une URL ou un fichier.");
         setLoading(false);
         return;
     }
@@ -413,9 +368,6 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
       
       if (error) {
           console.error("Supabase insert error:", error);
-          if (error.code === '42501') {
-              throw new Error("Permission refusée (RLS). Vous n'avez pas le droit d'ajouter des promotions.");
-          }
           throw new Error(error.message);
       }
       
@@ -437,7 +389,7 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
       }
     } catch (err: any) {
       console.error("Error adding promo:", err);
-      setPromoError(`Erreur lors de la publication : ${err.message || "Vérifiez votre connexion internet"}`);
+      alert(`Erreur lors de la publication : ${err.message || "Vérifiez votre connexion"}`);
     } finally {
       setLoading(false);
     }
@@ -501,9 +453,7 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
           description: settingsForm.description,
           cover_image: imageUrl, // Mapping explicite vers la colonne snake_case
           city: settingsForm.city,
-          phone_number: settingsForm.phoneNumber, // Mapping explicite vers la colonne snake_case
-          currency: settingsForm.currency,
-          payment_config: settingsForm.paymentConfig
+          phone_number: settingsForm.phoneNumber // Mapping explicite vers la colonne snake_case
       };
 
       try {
@@ -545,31 +495,6 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
       }
   };
 
-  const startEditItem = (item: MenuItem) => {
-      setNewItemName(item.name);
-      setNewItemDesc(item.description);
-      setNewItemPrice(item.price.toString());
-      setNewItemCategory(item.category);
-      setEditingItem(item);
-      setIsAddingItem(true);
-  };
-
-  const toggleItemAvailability = async (item: MenuItem) => {
-      try {
-          const newState = !item.isAvailable;
-          const { error } = await supabase.from('menu_items').update({ is_available: newState }).eq('id', item.id);
-          if (error) throw error;
-          
-          const updatedMenu = restaurant.menu.map(m => m.id === item.id ? { ...m, isAvailable: newState } : m);
-          onUpdateRestaurant({ ...restaurant, menu: updatedMenu });
-      } catch (err) {
-          console.error("Error toggling availability:", err);
-          // Optimistic update fallback
-          const updatedMenu = restaurant.menu.map(m => m.id === item.id ? { ...m, isAvailable: !item.isAvailable } : m);
-          onUpdateRestaurant({ ...restaurant, menu: updatedMenu });
-      }
-  };
-
   const deleteItem = async (itemId: string) => {
     if (!window.confirm("Supprimer cet élément ?")) return;
     try {
@@ -586,63 +511,40 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
     setLoading(true);
     const price = parseFloat(newItemPrice);
     
+    let imageUrl = `https://picsum.photos/200/200?random=${Date.now()}`;
+    if (newItemImageFile) {
+        const uploadedUrl = await uploadImage(newItemImageFile);
+        if (uploadedUrl) imageUrl = uploadedUrl;
+    }
+
+    const newItemPayload = {
+      restaurant_id: restaurant.id,
+      name: newItemName,
+      description: newItemDesc,
+      price: price,
+      category: newItemCategory,
+      is_available: true,
+      image: imageUrl
+    };
     try {
-        let imageUrl = editingItem ? editingItem.image : `https://picsum.photos/200/200?random=${Date.now()}`;
-        
-        if (newItemImageFile) {
-            const uploadedUrl = await uploadImage(newItemImageFile);
-            if (uploadedUrl) imageUrl = uploadedUrl;
-        }
-
-        const payload = {
-            name: newItemName,
-            description: newItemDesc,
-            price: price,
-            category: newItemCategory,
-            image: imageUrl
+      const { data, error } = await supabase.from('menu_items').insert(newItemPayload).select().single();
+      if (error) throw error;
+      if (data) {
+        const newItem: MenuItem = {
+          id: data.id, name: data.name, description: data.description, price: data.price,
+          category: data.category as any, isAvailable: data.is_available, image: data.image
         };
-
-        if (editingItem) {
-            // UPDATE
-            const { error } = await supabase.from('menu_items').update(payload).eq('id', editingItem.id);
-            if (error) throw error;
-            
-            const updatedMenu = restaurant.menu.map(m => m.id === editingItem.id ? { ...m, ...payload } : m);
-            onUpdateRestaurant({ ...restaurant, menu: updatedMenu });
-        } else {
-            // CREATE
-            const newPayload = { ...payload, restaurant_id: restaurant.id, is_available: true };
-            const { data, error } = await supabase.from('menu_items').insert(newPayload).select().single();
-            if (error) throw error;
-            
-            if (data) {
-                const newItem: MenuItem = {
-                  id: data.id, name: data.name, description: data.description, price: data.price,
-                  category: data.category as any, isAvailable: data.is_available, image: data.image
-                };
-                onUpdateRestaurant({ ...restaurant, menu: [...restaurant.menu, newItem] });
-            }
-        }
-    } catch (err) {
-      console.error("Error saving item:", err);
-      // Fallback for demo/offline
-      if (editingItem) {
-          const updatedMenu = restaurant.menu.map(m => m.id === editingItem.id ? { 
-              ...m, name: newItemName, description: newItemDesc, price, category: newItemCategory 
-          } : m);
-          onUpdateRestaurant({ ...restaurant, menu: updatedMenu });
-      } else {
-          const mockItem: MenuItem = {
-              id: `mock-item-${Date.now()}`, name: newItemName, description: newItemDesc, price: price,
-              category: newItemCategory, isAvailable: true, image: `https://picsum.photos/200/200?random=${Date.now()}`
-          };
-          onUpdateRestaurant({ ...restaurant, menu: [...restaurant.menu, mockItem] });
+        onUpdateRestaurant({ ...restaurant, menu: [...restaurant.menu, newItem] });
       }
+    } catch (err) {
+      const mockItem: MenuItem = {
+          id: `mock-item-${Date.now()}`, name: newItemName, description: newItemDesc, price: price,
+          category: newItemCategory, isAvailable: true, image: newItemPayload.image
+      };
+      onUpdateRestaurant({ ...restaurant, menu: [...restaurant.menu, mockItem] });
     } finally {
-      setNewItemName(''); setNewItemDesc(''); setNewItemPrice(''); 
-      setIsAddingItem(false); setLoading(false);
+      setNewItemName(''); setNewItemDesc(''); setNewItemPrice(''); setIsAddingItem(false); setLoading(false);
       setNewItemImageFile(null);
-      setEditingItem(null);
     }
   };
 
@@ -800,7 +702,7 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
 
       {isAddingItem && (
         <form onSubmit={addItem} className="bg-brand-50 dark:bg-brand-900/10 p-6 rounded-2xl border border-brand-100 dark:border-brand-900 shadow-sm animate-slide-in-down">
-          <h4 className="font-bold text-brand-800 dark:text-brand-400 mb-4">{editingItem ? 'Modifier le Plat' : 'Nouveau Plat'}</h4>
+          <h4 className="font-bold text-brand-800 dark:text-brand-400 mb-4">Nouveau Plat</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Nom du plat</label>
@@ -876,7 +778,7 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
               disabled={loading}
               className="px-6 py-3 rounded-xl font-bold bg-brand-600 text-white hover:bg-brand-700 shadow-lg"
             >
-              {loading ? 'Sauvegarde...' : (editingItem ? 'Mettre à jour' : 'Ajouter au menu')}
+              {loading ? 'Ajout...' : 'Ajouter au menu'}
             </button>
           </div>
         </form>
@@ -884,39 +786,22 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {restaurant.menu.map(item => (
-          <div key={item.id} className={`bg-white dark:bg-gray-800 p-4 rounded-xl border ${item.isAvailable ? 'border-gray-100 dark:border-gray-700' : 'border-red-200 bg-red-50 dark:bg-red-900/10'} shadow-sm flex space-x-4 hover:border-brand-200 transition-colors group relative`}>
-            <img src={item.image} className={`w-24 h-24 rounded-lg object-cover bg-gray-100 dark:bg-gray-700 ${!item.isAvailable && 'grayscale opacity-50'}`} alt={item.name} />
+          <div key={item.id} className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm flex space-x-4 hover:border-brand-200 transition-colors group">
+            <img src={item.image} className="w-24 h-24 rounded-lg object-cover bg-gray-100 dark:bg-gray-700" alt={item.name} />
             <div className="flex-1">
               <div className="flex justify-between items-start">
                 <h4 className="font-bold text-gray-800 dark:text-white text-lg">{item.name}</h4>
-                <div className="flex space-x-1">
-                    <button 
-                        onClick={() => toggleItemAvailability(item)}
-                        className={`p-1 rounded-md ${item.isAvailable ? 'text-green-600 bg-green-100' : 'text-red-600 bg-red-100'}`}
-                        title={item.isAvailable ? "Marquer comme épuisé" : "Marquer comme disponible"}
-                    >
-                        {item.isAvailable ? <CheckCircle size={14} /> : <X size={14} />}
-                    </button>
-                    <span className="text-xs font-bold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded capitalize">{item.category}</span>
-                </div>
+                <span className="text-xs font-bold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-1 rounded capitalize">{item.category}</span>
               </div>
               <p className="text-gray-500 dark:text-gray-400 text-sm line-clamp-2 mt-1">{item.description}</p>
               <div className="flex justify-between items-end mt-3">
-                <span className="font-black text-brand-600 text-xl">{formatPrice(item.price)}</span>
-                <div className="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={() => startEditItem(item)}
-                      className="p-2 text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
-                    >
-                      <Settings size={18} />
-                    </button>
-                    <button
-                      onClick={() => deleteItem(item.id)}
-                      className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                </div>
+                <span className="font-black text-brand-600 text-xl">${(item.price || 0).toFixed(2)}</span>
+                <button
+                  onClick={() => deleteItem(item.id)}
+                  className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                >
+                  <Trash2 size={18} />
+                </button>
               </div>
             </div>
           </div>
@@ -971,8 +856,7 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
                         onChange={(e) => setFont(e.target.value as AppFont)}
                         className="w-full bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm p-3 rounded-lg border border-gray-200 dark:border-gray-600 outline-none focus:border-brand-500"
                     >
-                        <option value="facebook">Facebook (Défaut)</option>
-                        <option value="inter">Inter</option>
+                        <option value="inter">Inter (Défaut)</option>
                         <option value="roboto">Roboto</option>
                         <option value="opensans">Open Sans</option>
                         <option value="lato">Lato</option>
@@ -1144,20 +1028,7 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Devise d'affichage</label>
-              <select
-                className="w-full p-4 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl focus:ring-2 focus:ring-brand-500 outline-none transition-all"
-                value={settingsForm.currency}
-                onChange={e => setSettingsForm({ ...settingsForm, currency: e.target.value as 'USD' | 'CDF' })}
-              >
-                <option value="USD">Dollar Américain ($)</option>
-                <option value="CDF">Franc Congolais (FC)</option>
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Image de couverture</label>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Image de couverture</label>
               <div className="space-y-2">
                   <input
                     type="text"
@@ -1172,92 +1043,6 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
                         <input type="file" accept="image/*" className="hidden" onChange={(e) => setCoverImageFile(e.target.files?.[0] || null)} />
                     </label>
               </div>
-            </div>
-
-          {/* Payment Configuration */}
-          <div className="pt-6 border-t border-gray-100 dark:border-gray-700">
-            <h4 className="font-bold text-gray-800 dark:text-white mb-4 flex items-center">
-              <DollarSign size={18} className="mr-2 text-brand-600"/> Modes de Paiement Acceptés
-            </h4>
-            
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
-                <div>
-                  <p className="font-bold text-gray-900 dark:text-white">Cash à la livraison</p>
-                  <p className="text-xs text-gray-500">Le client paie lors de la réception.</p>
-                </div>
-                <button 
-                  type="button"
-                  onClick={() => setSettingsForm({
-                    ...settingsForm, 
-                    paymentConfig: { ...settingsForm.paymentConfig, acceptCash: !settingsForm.paymentConfig.acceptCash }
-                  })}
-                  className={`w-12 h-6 rounded-full p-1 transition-colors ${settingsForm.paymentConfig.acceptCash ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}
-                >
-                  <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform ${settingsForm.paymentConfig.acceptCash ? 'translate-x-6' : 'translate-x-0'}`} />
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
-                <div>
-                  <p className="font-bold text-gray-900 dark:text-white">Paiement Mobile Money</p>
-                  <p className="text-xs text-gray-500">Le client paie directement sur le site.</p>
-                </div>
-                <button 
-                  type="button"
-                  onClick={() => setSettingsForm({
-                    ...settingsForm, 
-                    paymentConfig: { ...settingsForm.paymentConfig, acceptMobileMoney: !settingsForm.paymentConfig.acceptMobileMoney }
-                  })}
-                  className={`w-12 h-6 rounded-full p-1 transition-colors ${settingsForm.paymentConfig.acceptMobileMoney ? 'bg-brand-600' : 'bg-gray-300 dark:bg-gray-600'}`}
-                >
-                  <div className={`w-4 h-4 rounded-full bg-white shadow-sm transform transition-transform ${settingsForm.paymentConfig.acceptMobileMoney ? 'translate-x-6' : 'translate-x-0'}`} />
-                </button>
-              </div>
-
-              {settingsForm.paymentConfig.acceptMobileMoney && (
-                <div className="pl-4 space-y-4 animate-in slide-in-from-top-2 duration-200">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Numéro M-Pesa</label>
-                    <input 
-                      type="tel"
-                      className="w-full p-3 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg text-sm"
-                      placeholder="Ex: 081..."
-                      value={settingsForm.paymentConfig.mpesaNumber || ''}
-                      onChange={e => setSettingsForm({
-                        ...settingsForm,
-                        paymentConfig: { ...settingsForm.paymentConfig, mpesaNumber: e.target.value }
-                      })}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Numéro Airtel Money</label>
-                    <input 
-                      type="tel"
-                      className="w-full p-3 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg text-sm"
-                      placeholder="Ex: 099..."
-                      value={settingsForm.paymentConfig.airtelNumber || ''}
-                      onChange={e => setSettingsForm({
-                        ...settingsForm,
-                        paymentConfig: { ...settingsForm.paymentConfig, airtelNumber: e.target.value }
-                      })}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">Numéro Orange Money</label>
-                    <input 
-                      type="tel"
-                      className="w-full p-3 border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg text-sm"
-                      placeholder="Ex: 089..."
-                      value={settingsForm.paymentConfig.orangeNumber || ''}
-                      onChange={e => setSettingsForm({
-                        ...settingsForm,
-                        paymentConfig: { ...settingsForm.paymentConfig, orangeNumber: e.target.value }
-                      })}
-                    />
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 
@@ -1417,11 +1202,6 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
                       <div className="flex items-center space-x-2">
                         <h3 className="font-bold text-lg text-gray-900 dark:text-white">Commande #{order.id.slice(0,6)}</h3>
                         {getStatusBadge(order.status)}
-                        {order.isUrgent && (
-                          <span className="bg-red-500 text-white px-2 py-1 rounded text-xs font-bold uppercase flex items-center shadow-sm animate-pulse-fast">
-                            <Zap size={12} className="mr-1 fill-white" /> Urgent
-                          </span>
-                        )}
                       </div>
                       <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 flex items-center">
                          <span className="font-bold mr-1">{order.customer?.full_name}</span> 
@@ -1508,16 +1288,6 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
             <form onSubmit={addPromotion} className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 p-6 rounded-2xl border border-purple-100 dark:border-purple-800 shadow-sm animate-slide-in-down">
                 <h4 className="font-bold text-purple-900 dark:text-purple-300 mb-4 flex items-center"><Megaphone size={18} className="mr-2"/> {t('create_promo')}</h4>
                 
-                {promoError && (
-                    <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border-l-4 border-red-500 text-red-700 dark:text-red-400 text-sm flex items-center animate-in fade-in slide-in-from-top-2">
-                        <AlertCircle size={16} className="mr-2 flex-shrink-0" />
-                        <span>{promoError}</span>
-                        <button onClick={() => setPromoError(null)} className="ml-auto text-red-500 hover:text-red-700">
-                            <X size={14} />
-                        </button>
-                    </div>
-                )}
-                
                 <div className="space-y-4">
                     <div>
                         <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">{t('media_type')}</label>
@@ -1551,7 +1321,6 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
                                         if (file) {
                                             setPromoFile(file);
                                             setNewPromoUrl(''); // Clear URL if file selected
-                                            setPromoError(null);
                                         }
                                     }} 
                                 />
@@ -1598,10 +1367,7 @@ export const BusinessDashboard: React.FC<Props> = ({ user, restaurant, onUpdateR
                             value={newPromoUrl}
                             onChange={e => {
                                 setNewPromoUrl(e.target.value);
-                                if (e.target.value) {
-                                    setPromoFile(null); // Clear file if URL typed
-                                    setPromoError(null);
-                                }
+                                if (e.target.value) setPromoFile(null); // Clear file if URL typed
                             }}
                             disabled={!!promoFile}
                         />

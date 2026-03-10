@@ -116,9 +116,7 @@ export const RestaurantCard: React.FC<Props> = ({ restaurant, onClick }) => {
                       <img src={item.image} alt={item.name} className="w-8 h-8 rounded-md object-cover mr-3 bg-gray-200 dark:bg-gray-700" />
                       <span className="text-sm font-medium text-gray-600 dark:text-gray-300 truncate max-w-[140px]">{item.name}</span>
                    </div>
-                   <span className="text-xs font-bold text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-md">
-                     {restaurant.currency === 'CDF' ? `${(item.price || 0).toFixed(0)} FC` : `$${(item.price || 0).toFixed(2)}`}
-                   </span>
+                   <span className="text-xs font-bold text-gray-900 dark:text-white bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-md">${(item.price || 0).toFixed(2)}</span>
                 </div>
               ))}
             </div>
